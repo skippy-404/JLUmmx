@@ -1,5 +1,5 @@
-#ifndef RSA_H
-#define RSA_H
+#ifndef RSA_BLIND_SIGNATURE_H
+#define RSA_BLIND_SIGNATURE_H
 
 #include <string>
 #include <vector>
@@ -60,17 +60,17 @@ private:
     void initRandom();
 };
 
-// RSA加密解密类
-class RSA {
+// RSA盲签名类
+class RSABlindSignature {
 public:
     // 使用给定密钥对初始化
-    RSA(const RSAKeyPair& keyPair);
+    RSABlindSignature(const RSAKeyPair& keyPair);
     
     // 使用公钥字符串初始化
-    RSA(const std::string& e, const std::string& n);
+    RSABlindSignature(const std::string& e, const std::string& n);
     
     // 析构函数
-    ~RSA();
+    ~RSABlindSignature();
     
     // 设置公钥
     void setPublicKey(const std::string& e, const std::string& n);
@@ -78,22 +78,19 @@ public:
     // 设置私钥
     void setPrivateKey(const std::string& d, const std::string& n);
     
-    // 加密整数
-    std::string encrypt(const std::string& message) const;
+    // 用户: 生成盲因子
+    std::string generateBlindingFactor() const;
     
-    // 解密整数
-    std::string decrypt(const std::string& ciphertext) const;
+    // 用户: 使用公钥和盲因子对消息进行盲化
+    std::string blind(const std::string& message, const std::string& blindingFactor) const;
     
-    // 加密字符串
-    std::vector<std::string> encryptString(const std::string& message) const;
+    // 签名者: 对盲化消息进行签名
+    std::string signBlindedMessage(const std::string& blindedMessage) const;
     
-    // 解密字符串
-    std::string decryptString(const std::vector<std::string>& ciphertext) const;
+    // 用户: 从盲签名中移除盲因子，获得原始消息的签名
+    std::string unblind(const std::string& blindSignature, const std::string& blindingFactor) const;
     
-    // 生成数字签名
-    std::string sign(const std::string& message) const;
-    
-    // 验证数字签名
+    // 验证签名
     bool verify(const std::string& message, const std::string& signature) const;
     
 private:
@@ -103,45 +100,12 @@ private:
     
     bool hasPublicKey;   // 是否有公钥
     bool hasPrivateKey;  // 是否有私钥
+    
+    // 随机数生成器状态
+    gmp_randstate_t rstate;
+    
+    // 初始化随机数生成器
+    void initRandom();
 };
 
-// 证书类
-class Certificate {
-public:
-    // 创建新证书
-    Certificate(const std::string& subject, const RSAKeyPair& keyPair);
-    
-    // 从文件加载证书
-    explicit Certificate(const std::string& filename);
-    
-    // 保存证书到文件
-    bool save(const std::string& filename) const;
-    
-    // 获取证书主题
-    std::string getSubject() const;
-    
-    // 获取证书公钥
-    std::pair<std::string, std::string> getPublicKey() const;
-    
-    // 获取证书签名
-    std::string getSignature() const;
-    
-    // 验证证书签名
-    bool verify(const RSA& verifier) const;
-    
-private:
-    std::string subject;                         // 证书主题
-    std::pair<std::string, std::string> pubKey;  // 公钥(e, n)
-    std::string signature;                       // 证书签名
-    std::string serialNumber;                    // 序列号
-    std::string validFrom;                       // 有效期开始
-    std::string validTo;                         // 有效期结束
-    
-    // 生成序列号
-    void generateSerialNumber();
-    
-    // 设置有效期
-    void setValidity(int days = 365);
-};
-
-#endif // RSA_H 
+#endif // RSA_BLIND_SIGNATURE_H
